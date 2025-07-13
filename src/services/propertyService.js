@@ -1,4 +1,3 @@
-import { db, auth } from "/src/services/firebase.js";
 import {
   collection,
   addDoc,
@@ -6,7 +5,8 @@ import {
   doc,
   deleteDoc,
   serverTimestamp,
-} from "/node_modules/.vite/deps/firebase_firestore.js?v=439ede2e";
+} from "firebase/firestore";
+
 import { uploadMultipleToCloudinary } from "/src/utils/cloudnaryUpload.js?t=1752390105784";
 import { convertOffsetToTimes } from "framer-motion";
 
