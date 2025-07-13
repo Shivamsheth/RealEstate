@@ -20,7 +20,7 @@ import { convertOffsetToTimes } from "framer-motion";
 export async function createProperty(form, imageFiles = [], onProgress) {
   try {
     const user = auth.currentUser;
-    console.log('The role of the user is:', user?.role);
+   
     if (!user) throw new Error('User not authenticated');
 
     const urls = imageFiles.length
