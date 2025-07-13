@@ -19,6 +19,12 @@ export default function Signup() {
   const [role, setRole] = useState('client');
   const [loading, setLoading] = useState(false);
 
+  // Configure the link so that once clicked, user lands on /login
+  const actionCodeSettings = {
+    url: `${window.location.origin}/login`,
+    handleCodeInApp: true,
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPwd) {
@@ -30,8 +36,9 @@ export default function Signup() {
       return;
     }
     setLoading(true);
+
     try {
-      // create user
+      // 1) Create user in Firebase Auth
       const userCred = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -39,31 +46,32 @@ export default function Signup() {
       );
       const user = userCred.user;
 
-      // add profile to Firestore
+      // 2) Create user profile in Firestore
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
-        role,              // client, agent or admin
-        approved: role === 'client', // auto-approved if client
+        role,                           // client or agent
+        approved: role === 'client',    // auto-approved for clients
         createdAt: Date.now(),
       });
 
-      // send verification email
-      await sendEmailVerification(user);
+      // 3) Send verification email pointing to /login
+      await sendEmailVerification(user, actionCodeSettings);
       await confirmAlert({
-        title: 'Verify Your Email',
+        title: 'Please Verify Your Mail',
         text: 'A verification link has been sent to your inbox.',
         icon: 'info',
       });
 
-      // if agent signup, notify pending approval
+      // 4) If agent, tell them account needs admin approval
       if (role === 'agent') {
         await confirmAlert({
           title: 'Pending Approval',
-          text: 'You will be able to log in once an admin approves your account.',
+          text: 'You’ll be able to log in once an admin approves your account.',
           icon: 'warning',
         });
       }
 
+      // 5) Finally, redirect to Login page
       navigate('/login');
     } catch (err) {
       await confirmAlert({

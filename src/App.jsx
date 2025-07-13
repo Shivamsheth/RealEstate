@@ -27,6 +27,7 @@ import FAQ from './pages/FAQ';
 
 import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
+import VerifyEmail from './components/Auth/VerifyEmail';
 
 import AgentDashboard from './pages/AgentDashboard';
 import AdminDashboard from './pages/AdminDashboard';
@@ -51,9 +52,15 @@ function AnimatedRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
+        {/* New: Email verification handler */}
+        <Route path="/verify-email" element={<VerifyEmail />} />
+
         <Route path="/agent-dashboard" element={<AgentDashboard />} />
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route path="/admin-dashboard/properties" element={<PropertyManager />} />
+        <Route
+          path="/admin-dashboard/properties"
+          element={<PropertyManager />}
+        />
         <Route path="/user-dashboard" element={<UserDashboard />} />
       </Routes>
     </AnimatePresence>
@@ -66,7 +73,7 @@ function AppLayout() {
 
   return (
     <div className="flex bg-gray-900 text-gray-100 min-h-screen pt-16">
-      {/* Sidebar is always rendered, with user passed as prop */}
+      {/* Sidebar always rendered, will show guest or user links */}
       <Sidebar user={user} />
 
       <main
