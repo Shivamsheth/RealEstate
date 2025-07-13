@@ -68,13 +68,7 @@ export default function Navbar() {
               Log Out
             </motion.button>
           )}
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 rounded hover:bg-gray-700"
-            aria-label="Toggle Dark Mode"
-          >
-            {darkMode ? <FaSun /> : <FaMoon />}
-          </button>
+          
         </div>
       </div>
     </nav>

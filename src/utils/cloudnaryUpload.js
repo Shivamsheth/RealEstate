@@ -7,7 +7,7 @@
  * @returns {Promise<string[]>} - Array of secure image URLs.
  */
 export const uploadMultipleToCloudinary = async (files, onProgress) => {
-  const cloudName = 'dcrltbxgq'; // your Cloudinary cloud name
+  const cloudName = 'dcrtitxgq'; // your Cloudinary cloud name
   const uploadPreset = 'rudra_property_upload'; // your unsigned preset
   const urls = [];
 

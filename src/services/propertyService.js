@@ -1,60 +1,107 @@
-// src/services/propertyService.js
+import { db, auth } from "/src/services/firebase.js";
 import {
   collection,
-  doc,
-  setDoc,
+  addDoc,
   updateDoc,
+  doc,
   deleteDoc,
-} from 'firebase/firestore';
-import { db } from './firebase';
-import { uploadMultipleToCloudinary } from '../utils/cloudnaryUpload';
+  serverTimestamp,
+} from "/node_modules/.vite/deps/firebase_firestore.js?v=439ede2e";
+import { uploadMultipleToCloudinary } from "/src/utils/cloudnaryUpload.js?t=1752390105784";
+import { convertOffsetToTimes } from "framer-motion";
 
 /**
  * Create a new property document in Firestore
+ * @param {Object} form - Form data excluding image files
+ * @param {File[]} imageFiles - Array of image files to upload
+ * @param {Function} onProgress - Optional progress callback
+ * @returns {Promise<string>} - ID of the created property document
  */
-export async function createProperty(data, imageFiles = [], onProgress) {
-  const colRef = collection(db, 'properties');
-  const docRef = doc(colRef); // generate ID
+export async function createProperty(form, imageFiles = [], onProgress) {
+  try {
+    const user = auth.currentUser;
+    console.log('The role of the user is:', user?.role);
+    if (!user) throw new Error('User not authenticated');
 
-  // 1) Upload images to Cloudinary
-  const imageUrls = imageFiles.length
-    ? await uploadMultipleToCloudinary(imageFiles, onProgress)
-    : [];
+    const urls = imageFiles.length
+      ? await uploadMultipleToCloudinary(imageFiles, onProgress)
+      : [];
 
-  // 2) Save property to Firestore
-  await setDoc(docRef, {
-    ...data,
-    images: imageUrls,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  });
+    const {
+      imageFiles: _files = [],
+      images: _imgs = [],
+      ...rest
+    } = form;
 
-  return docRef.id;
+    const data = {
+      ...rest,
+      images: urls,
+      ownerId: user.uid, // ✅ Required for Firestore rules
+      createdAt: serverTimestamp(),
+    };
+
+    console.log('Creating property with data:', data);
+
+    const colRef = collection(db, 'properties');
+    const docRef = await addDoc(colRef, data);
+    console.log('Property created with ID:', docRef.id);
+    return docRef.id;
+  } catch (err) {
+    console.error('Error creating property:', err.message);
+    throw err;
+  }
+}
+/**
+ * Update an existing property document
+ * @param {string} id - Document ID
+ * @param {Object} form - Form data
+ * @param {File[]} imageFiles - New image files to upload
+ * @param {Function} onProgress - Optional progress callback
+ * @returns {Promise<void>}
+ */
+export async function updateProperty(id, form, imageFiles = [], onProgress) {
+  try {
+    const newUrls = imageFiles.length
+      ? await uploadMultipleToCloudinary(imageFiles, onProgress)
+      : [];
+
+    const existing = Array.isArray(form.images) ? [...form.images] : [];
+    const allImages = [...existing, ...newUrls];
+
+    const {
+      imageFiles: _files = [],
+      images: _imgs = [],
+      ...rest
+    } = form;
+
+    const data = {
+      ...rest,
+      images: allImages,
+      updatedAt: serverTimestamp(),
+    };
+
+    console.log('Updating property with data:', data);
+
+    const docRef = doc(db, 'properties', id);
+    await updateDoc(docRef, data);
+    console.log('Property updated:', id);
+  } catch (err) {
+    console.error('Error updating property:', err.message);
+    throw err;
+  }
 }
 
 /**
- * Update existing property (optionally add new images)
+ * Delete a property document
+ * @param {string} id - Document ID
+ * @returns {Promise<void>}
  */
-export async function updateProperty(propertyId, data, newFiles = [], onProgress) {
-  const docRef = doc(db, 'properties', propertyId);
-
-  // 1) Upload new images to Cloudinary
-  const newUrls = newFiles.length
-    ? await uploadMultipleToCloudinary(newFiles, onProgress)
-    : [];
-
-  // 2) Merge and update Firestore
-  await updateDoc(docRef, {
-    ...data,
-    images: [...(data.images || []), ...newUrls],
-    updatedAt: Date.now(),
-  });
-}
-
-/**
- * Delete a property from Firestore
- * Note: Cloudinary images are not deleted unless you store public IDs and call their API
- */
-export async function deleteProperty(propertyId) {
-  await deleteDoc(doc(db, 'properties', propertyId));
+export async function deleteProperty(id) {
+  try {
+    await deleteDoc(doc(db, 'properties', id));
+    console.log('Property deleted:', id);
+  } catch (err) {
+    console.error('Error deleting property:', err.message);
+    throw err;
+  }
 }
