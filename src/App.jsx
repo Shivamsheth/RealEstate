@@ -66,12 +66,12 @@ function AppLayout() {
 
   return (
     <div className="flex bg-gray-900 text-gray-100 min-h-screen pt-16">
-      {/* Sidebar is conditionally rendered and pushes content when open */}
-      {user && <Sidebar />}
+      {/* Sidebar is always rendered, with user passed as prop */}
+      <Sidebar user={user} />
 
       <main
         className={`flex-1 transition-all duration-300 ${
-          user && isOpen ? 'ml-64' : 'ml-0'
+          isOpen ? 'ml-64' : 'ml-0'
         }`}
       >
         <AnimatedRoutes />
