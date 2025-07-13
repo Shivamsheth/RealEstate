@@ -6,59 +6,22 @@ import {
   updateDoc,
   deleteDoc,
 } from 'firebase/firestore';
-import {
-  ref as storageRef,
-  uploadBytesResumable,
-  getDownloadURL,
-  deleteObject,
-} from 'firebase/storage';
-import { db, storage } from './firebase';
-
-/**
- * Upload an array of File objects to Storage under property_images/{propertyId}/
- * Returns an array of download URLs
- */
-export async function uploadPropertyImages(propertyId, files, onProgress) {
-  const uploadPromises = files.map((file, idx) => {
-    const path = `property_images/${propertyId}/${Date.now()}_${file.name}`;
-    const ref = storageRef(storage, path);
-    const task = uploadBytesResumable(ref, file);
-
-    return new Promise((resolve, reject) => {
-      task.on(
-        'state_changed',
-        snapshot => {
-          if (onProgress) {
-            const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            onProgress(idx, pct);
-          }
-        },
-        reject,
-        async () => {
-          const url = await getDownloadURL(task.snapshot.ref);
-          resolve(url);
-        }
-      );
-    });
-  });
-
-  return Promise.all(uploadPromises);
-}
+import { db } from './firebase';
+import { uploadMultipleToCloudinary } from '../utils/cloudnaryUpload';
 
 /**
  * Create a new property document in Firestore
  */
 export async function createProperty(data, imageFiles = [], onProgress) {
   const colRef = collection(db, 'properties');
-  // Create a doc with an ID but no data yet (so we have an ID for storage path)
-  const docRef = doc(colRef);
+  const docRef = doc(colRef); // generate ID
 
-  // 1) Upload images, get URLs
+  // 1) Upload images to Cloudinary
   const imageUrls = imageFiles.length
-    ? await uploadPropertyImages(docRef.id, imageFiles, onProgress)
+    ? await uploadMultipleToCloudinary(imageFiles, onProgress)
     : [];
 
-  // 2) Write the property record
+  // 2) Save property to Firestore
   await setDoc(docRef, {
     ...data,
     images: imageUrls,
@@ -70,17 +33,17 @@ export async function createProperty(data, imageFiles = [], onProgress) {
 }
 
 /**
- * Update existing property (optionally add new files or remove old ones)
+ * Update existing property (optionally add new images)
  */
 export async function updateProperty(propertyId, data, newFiles = [], onProgress) {
   const docRef = doc(db, 'properties', propertyId);
 
-  // 1) Upload new files if any
+  // 1) Upload new images to Cloudinary
   const newUrls = newFiles.length
-    ? await uploadPropertyImages(propertyId, newFiles, onProgress)
+    ? await uploadMultipleToCloudinary(newFiles, onProgress)
     : [];
 
-  // 2) Merge existing data + new URLs + updatedAt
+  // 2) Merge and update Firestore
   await updateDoc(docRef, {
     ...data,
     images: [...(data.images || []), ...newUrls],
@@ -89,9 +52,9 @@ export async function updateProperty(propertyId, data, newFiles = [], onProgress
 }
 
 /**
- * Delete a property and optionally its images
+ * Delete a property from Firestore
+ * Note: Cloudinary images are not deleted unless you store public IDs and call their API
  */
 export async function deleteProperty(propertyId) {
-  // TODO: optionally list & delete storage folder first
   await deleteDoc(doc(db, 'properties', propertyId));
-}   
+}
